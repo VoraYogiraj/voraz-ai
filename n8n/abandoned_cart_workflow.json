@@ -1,0 +1,38 @@
+{
+  "name": "VORA — Abandoned Cart WhatsApp",
+  "nodes": [
+    {
+      "parameters": { "path": "shopify-abandoned-cart" },
+      "name": "Shopify Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": { "amount": 30, "unit": "minutes" },
+      "name": "Wait 30 Mins",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$node[\"VORA Backend\"].env.WHATSAPP_API_URL}}",
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "message", "value": "Hi! We noticed you left some VORA items in your cart. Need help with sizing? 🌸" }
+          ]
+        }
+      },
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Shopify Webhook": { "main": [ [ { "node": "Wait 30 Mins", "type": "main", "index": 0 } ] ] },
+    "Wait 30 Mins": { "main": [ [ { "node": "Send WhatsApp", "type": "main", "index": 0 } ] ] }
+  }
+}
