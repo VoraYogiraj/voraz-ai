@@ -72,3 +72,44 @@ CREATE POLICY "Service role full access" ON products FOR ALL TO service_role USI
 CREATE POLICY "Service role full access" ON product_embeddings FOR ALL TO service_role USING (true);
 CREATE POLICY "Service role full access" ON chat_sessions FOR ALL TO service_role USING (true);
 CREATE POLICY "Service role full access" ON customer_profiles FOR ALL TO service_role USING (true);
+
+-- =====================================================================
+-- 8. QUIZ FEATURE — Additive schema changes (safe to re-run)
+-- =====================================================================
+
+-- 8a. Products: hard-filter columns
+ALTER TABLE products ADD COLUMN IF NOT EXISTS order_type TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS vibe TEXT[];
+ALTER TABLE products ADD COLUMN IF NOT EXISTS silhouette TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS fit_type TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS starting_price_inr NUMERIC(10,2); -- NULL = price on request (Bespoke)
+
+-- Constrain order_type to the three known codes
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'products_order_type_check'
+    ) THEN
+        ALTER TABLE products ADD CONSTRAINT products_order_type_check
+            CHECK (order_type IS NULL OR order_type IN ('ready_to_ship', 'choose_customize', 'fully_bespoke'));
+    END IF;
+END $$;
+
+-- 8b. Chat Sessions: quiz state (resumable per session)
+ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS quiz_answers JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS quiz_step TEXT; -- current question id, for resume
+ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS quiz_completed BOOLEAN DEFAULT false;
+
+-- 8c. Customer Profiles: lead capture fields
+ALTER TABLE customer_profiles ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE customer_profiles ADD COLUMN IF NOT EXISTS inspiration_image_url TEXT;
+ALTER TABLE customer_profiles ADD COLUMN IF NOT EXISTS inspiration_link TEXT;
+ALTER TABLE customer_profiles ADD COLUMN IF NOT EXISTS lead_source TEXT; -- 'quiz_ready_to_ship' | 'quiz_customize' | 'quiz_bespoke' | 'chat'
+ALTER TABLE customer_profiles ADD COLUMN IF NOT EXISTS lead_captured_at TIMESTAMPTZ;
+
+-- 8d. Indexes for the new hard-filter columns (quiz path is filter-heavy, not vector-heavy)
+CREATE INDEX IF NOT EXISTS idx_products_order_type ON products(order_type);
+CREATE INDEX IF NOT EXISTS idx_products_silhouette ON products(silhouette);
+CREATE INDEX IF NOT EXISTS idx_products_fit_type ON products(fit_type);
+CREATE INDEX IF NOT EXISTS idx_products_vibe ON products USING GIN(vibe);
+CREATE INDEX IF NOT EXISTS idx_products_occasion ON products(occasion);

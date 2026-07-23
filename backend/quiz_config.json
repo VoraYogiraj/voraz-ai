@@ -1,0 +1,157 @@
+{
+  "version": "1.0",
+  "questions": [
+    {
+      "id": "order_type",
+      "type": "single_select",
+      "title": "How would you like your outfit?",
+      "show_for": "all",
+      "options": [
+        { "value": "ready_to_ship", "label": "Ready to Ship", "sublabel": "In stock, ships now — everything under ₹60k" },
+        { "value": "choose_customize", "label": "Choose & Customize", "sublabel": "Pick a design, tailor color/embroidery/fit/drape" },
+        { "value": "fully_bespoke", "label": "Fully Bespoke", "sublabel": "From scratch, handcrafted — 60 days, price on request" }
+      ]
+    },
+    {
+      "id": "occasion",
+      "type": "single_select",
+      "title": "What's the occasion?",
+      "show_for": ["ready_to_ship", "choose_customize"],
+      "metafield_key": "custom.occasions",
+      "options": [
+        { "value": "Mehendi", "label": "Mehendi" },
+        { "value": "Sangeet", "label": "Sangeet" },
+        { "value": "Engagement", "label": "Engagement" },
+        { "value": "Bridal", "label": "Bridal" },
+        { "value": "Reception", "label": "Reception" },
+        { "value": "Cocktail", "label": "Cocktail" },
+        { "value": "Pre Wedding", "label": "Pre-Wedding" }
+      ]
+    },
+    {
+      "id": "vibe",
+      "type": "multi_select",
+      "title": "Pick your vibe",
+      "sublabel": "Choose 1-4",
+      "show_for": ["ready_to_ship", "choose_customize"],
+      "metafield_key": "custom.vibes",
+      "min_select": 1,
+      "max_select": 4,
+      "options": [
+        { "value": "Modern", "label": "Modern" },
+        { "value": "Heritage", "label": "Heritage" },
+        { "value": "Luxe", "label": "Luxe" },
+        { "value": "Dramatic", "label": "Dramatic" },
+        { "value": "Romantic", "label": "Romantic" },
+        { "value": "Fusion", "label": "Fusion" }
+      ]
+    },
+    {
+      "id": "silhouette",
+      "type": "single_select",
+      "title": "Preferred silhouette?",
+      "sublabel": "Optional — skip if you're not sure",
+      "show_for": ["ready_to_ship", "choose_customize"],
+      "optional": true,
+      "metafield_key": "custom.silhouettes",
+      "options": [
+        { "value": "A-Line", "label": "A-Line" },
+        { "value": "Lehenga", "label": "Lehenga" },
+        { "value": "Straight / Column", "label": "Straight / Column" },
+        { "value": "Anarkali", "label": "Anarkali" },
+        { "value": "Mermaid", "label": "Mermaid" },
+        { "value": "Sharara", "label": "Sharara" },
+        { "value": "Gown", "label": "Gown" },
+        { "value": "Cape Style", "label": "Cape Style" }
+      ]
+    },
+    {
+      "id": "fit_type",
+      "type": "single_select",
+      "title": "How should it fit?",
+      "sublabel": "Optional",
+      "show_for": ["ready_to_ship", "choose_customize"],
+      "optional": true,
+      "metafield_key": "custom.fit_type",
+      "options": [
+        { "value": "Fitted", "label": "Fitted" },
+        { "value": "Semi-Fitted", "label": "Semi-Fitted" },
+        { "value": "Relaxed", "label": "Relaxed" },
+        { "value": "Flared", "label": "Flared" }
+      ]
+    },
+    {
+      "id": "color",
+      "type": "single_select",
+      "title": "Any color in mind?",
+      "sublabel": "Optional",
+      "show_for": ["ready_to_ship", "choose_customize"],
+      "optional": true,
+      "loosenable": true,
+      "metafield_key": "custom.color",
+      "options": [
+        { "value": "Red", "label": "Red" },
+        { "value": "Pink", "label": "Pink" },
+        { "value": "Ivory", "label": "Ivory" },
+        { "value": "Gold", "label": "Gold" },
+        { "value": "Purple", "label": "Purple" },
+        { "value": "Green", "label": "Green" },
+        { "value": "Blue", "label": "Blue" },
+        { "value": "Yellow", "label": "Yellow" },
+        { "value": "Maroon", "label": "Maroon" },
+        { "value": "Rani Pink", "label": "Rani Pink" },
+        { "value": "Magenta", "label": "Magenta" },
+        { "value": "Wine", "label": "Wine" },
+        { "value": "Emerald", "label": "Emerald" },
+        { "value": "Teal", "label": "Teal" },
+        { "value": "Peach", "label": "Peach" },
+        { "value": "Blush", "label": "Blush" },
+        { "value": "Champagne", "label": "Champagne" },
+        { "value": "Coral", "label": "Coral" },
+        { "value": "Mint", "label": "Mint" },
+        { "value": "Navy", "label": "Navy" },
+        { "value": "Black", "label": "Black" },
+        { "value": "White", "label": "White" },
+        { "value": "Beige", "label": "Beige" },
+        { "value": "Mustard", "label": "Mustard" },
+        { "value": "Rust", "label": "Rust" },
+        { "value": "Silver", "label": "Silver" }
+      ]
+    },
+    {
+      "id": "lead_capture",
+      "type": "lead_form",
+      "title": "Almost there — where should we send this?",
+      "show_for": "all",
+      "fields": [
+        { "id": "name", "label": "Name", "type": "text", "required": true },
+        { "id": "whatsapp_number", "label": "WhatsApp Number", "type": "tel", "required": true },
+        { "id": "city", "label": "City", "type": "text", "required": true },
+        {
+          "id": "inspiration",
+          "label": "Inspiration image or link",
+          "type": "image_or_url",
+          "required": true,
+          "show_for": ["fully_bespoke"]
+        }
+      ]
+    },
+    {
+      "id": "results",
+      "type": "results",
+      "title": "Your matches",
+      "show_for": "all",
+      "cta_by_order_type": {
+        "ready_to_ship": { "label": "Add to Cart", "action": "add_to_cart" },
+        "choose_customize": { "label": "Chat with a Stylist", "action": "whatsapp_handoff" },
+        "fully_bespoke": { "label": "Chat with a Stylist", "action": "whatsapp_handoff" }
+      },
+      "skip_product_query_for": ["fully_bespoke"]
+    }
+  ],
+  "flow": {
+    "ready_to_ship": ["order_type", "occasion", "vibe", "silhouette", "fit_type", "color", "lead_capture", "results"],
+    "choose_customize": ["order_type", "occasion", "vibe", "silhouette", "fit_type", "color", "lead_capture", "results"],
+    "fully_bespoke": ["order_type", "lead_capture", "results"]
+  }
+}
