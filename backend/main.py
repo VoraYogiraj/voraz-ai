@@ -1,6 +1,6 @@
 import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-from routes import chat, webhook
+from routes import chat, webhook, quiz
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +26,7 @@ app.add_middleware(
 
 app.include_router(chat.router, prefix="/api")
 app.include_router(webhook.router, prefix="/webhook")
+app.include_router(quiz.router, prefix="/api")
 
 
 
