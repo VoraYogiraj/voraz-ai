@@ -1,0 +1,82 @@
+{% comment %}
+  vora-quiz-page.liquid
+  Standalone luxury quiz page. Render this from a page template, e.g.:
+    templates/page.ai-stylist-quiz.liquid  ->  {% render 'vora-quiz-page' %}
+  Theme header/footer are provided by theme.liquid as normal.
+{% endcomment %}
+
+<div class="vqp-wrap">
+  <section class="vqp-hero">
+    <p class="vqp-eyebrow">VORA AI Stylist</p>
+    <h1 class="vqp-heading">Find Your Perfect Bridal Look</h1>
+    <p class="vqp-subheading">
+      A few quick questions, tailored recommendations from our collection —
+      Ready to Ship, Choose &amp; Customize, or Fully Bespoke.
+    </p>
+  </section>
+
+  <div class="vqp-quiz-card">
+    <div data-vora-quiz data-vora-quiz-mode="page"></div>
+  </div>
+</div>
+
+<style>
+  .vqp-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 24px 100px;
+  }
+
+  .vqp-hero {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .vqp-eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: 12px;
+    color: #c9a96e;
+    margin: 0 0 12px;
+  }
+
+  .vqp-heading {
+    font-family: serif;
+    font-size: clamp(28px, 4vw, 42px);
+    color: #1a1a2e;
+    margin: 0 0 16px;
+    font-weight: 500;
+  }
+
+  .vqp-subheading {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    color: #7a7266;
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .vqp-quiz-card {
+    background: rgba(250, 248, 245, 0.6);
+    border: 1px solid rgba(201, 169, 110, 0.2);
+    border-radius: 20px;
+    padding: 40px clamp(20px, 4vw, 56px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  }
+
+  @media (max-width: 600px) {
+    .vqp-quiz-card {
+      padding: 28px 18px;
+      border-radius: 14px;
+    }
+    .vqp-wrap {
+      padding: 32px 16px 60px;
+    }
+  }
+</style>
+
+{{ 'vora-quiz.css' | asset_url | stylesheet_tag }}
+{{ 'vora-quiz-luxury.css' | asset_url | stylesheet_tag }}
+{{ 'vora-quiz.js' | asset_url | script_tag }}
