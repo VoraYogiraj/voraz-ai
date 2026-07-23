@@ -1,14 +1,21 @@
 import logging
-from sentence_transformers import SentenceTransformer
+from openai import OpenAI
+from config import settings
 
 logger = logging.getLogger(__name__)
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+client = OpenAI(
+    api_key=settings.openrouter_api_key,
+    base_url=settings.openrouter_base_url,
+)
 
 def generate_embedding(text: str) -> list[float]:
     try:
-        vector = model.encode(text, normalize_embeddings=True)
-        return vector.tolist()
+        response = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=text,
+        )
+        return response.data[0].embedding
     except Exception as e:
         logger.error(f"Embedding generation error: {e}")
         return []
