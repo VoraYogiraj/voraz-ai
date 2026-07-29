@@ -47,8 +47,8 @@ async def root(request: Request):
                 resp = await client.post(
                     f"https://{shop}/admin/oauth/access_token",
                     json={
-                        "client_id": settings.shopify_api_key,
-                        "client_secret": settings.shopify_api_secret,
+                        "client_id": settings.shopify_admin_api_key,
+"client_secret": settings.shopify_admin_api_secret,
                         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
                         "subject_token": id_token,
                         "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
