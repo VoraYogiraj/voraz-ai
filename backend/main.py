@@ -2,7 +2,8 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 from routes import chat, webhook, quiz
 import logging
-from fastapi import FastAPI
+import httpx
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from config import settings
@@ -37,7 +38,26 @@ async def health_check():
     return {"status": "ok", "service": "vora-ai", "version": "1.0.0"}
 
 @app.get("/")
-async def root():
+async def root(request: Request):
+    id_token = request.query_params.get("id_token")
+    shop = request.query_params.get("shop")
+    if id_token and shop:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"https://{shop}/admin/oauth/access_token",
+                    json={
+                        "client_id": settings.shopify_api_key,
+                        "client_secret": settings.shopify_api_secret,
+                        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                        "subject_token": id_token,
+                        "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
+                        "requested_token_type": "urn:shopify:params:oauth:token-type:offline-access-token",
+                    },
+                )
+            logger.info(f"TOKEN EXCHANGE RESPONSE: {resp.text}")
+        except Exception as e:
+            logger.error(f"Token exchange failed: {e}")
     return {"message": "VORA AI Stylist API is running"}
 
 @app.on_event("startup")
