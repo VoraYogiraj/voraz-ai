@@ -3,6 +3,7 @@ import os
 import asyncio
 import logging
 import re
+import json
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
 
@@ -16,10 +17,34 @@ from services.supabase_client import supabase
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Metafields that are Shopify "list.single_line_text_field" — value comes back
+# as a JSON array string, e.g. '["Silk","Net"]'. Everything else is a plain
+# single-line string.
+LIST_METAFIELDS = {"occasions", "color", "vibes", "embroidery", "fabrics"}
+
+
 def clean_html(raw_html):
     """Removes Shopify HTML tags from descriptions."""
     cleanr = re.compile('<.*?>')
-    return re.sub(cleanr, '', raw_html)
+    return re.sub(cleanr, '', raw_html or '')
+
+
+def parse_metafield_value(mf: dict, key: str):
+    """Returns a list for list-type metafields, a plain string otherwise."""
+    raw = mf.get(key, "")
+    if key in LIST_METAFIELDS:
+        if not raw:
+            return []
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                return [str(v).strip() for v in parsed if str(v).strip()]
+        except (json.JSONDecodeError, TypeError):
+            pass
+        # fallback: comma-split in case it wasn't valid JSON for some reason
+        return [v.strip() for v in raw.split(",") if v.strip()]
+    return raw
+
 
 async def sync_products():
     logger.info("🚀 Starting VORA Product Sync...")
@@ -49,16 +74,29 @@ async def sync_products():
                 "description": description,
                 "price_inr": price,
                 "tags": tags,
-                "occasion": mf.get("occasions", "General"),
-                "color_palette": [c.strip() for c in mf.get("color", "").split(",") if c.strip()],
-                "embroidery": mf.get("embroidery", ""),
-                "fabric": mf.get("fabrics", ""),
-                "silhouette": mf.get("silhouette", ""),
-                "neckline": mf.get("neckline", ""),
-                "sleeve_style": mf.get("sleeve style", ""),
-                "fit": mf.get("fit", ""),
-                "vibes": mf.get("vibes", ""),
-                "short_description": mf.get("short description", ""),
+
+                # list-type metafields -> text[]
+                "occasion": parse_metafield_value(mf, "occasions"),
+                "color_palette": parse_metafield_value(mf, "color"),
+                "vibes": parse_metafield_value(mf, "vibes"),
+                "embroidery": parse_metafield_value(mf, "embroidery"),
+                "fabric": parse_metafield_value(mf, "fabrics"),
+
+                # single-value metafields -> text
+                "silhouette": parse_metafield_value(mf, "silhouettes"),
+                "neckline": parse_metafield_value(mf, "neckline"),
+                "sleeve_style": parse_metafield_value(mf, "sleeve_style"),
+                "fit": parse_metafield_value(mf, "fit_type"),
+                "order_type": parse_metafield_value(mf, "order_type"),
+                "dupatta": parse_metafield_value(mf, "dupatta"),
+
+                # free-text fields
+                "short_description": parse_metafield_value(mf, "short_description"),
+                "care_instructions": parse_metafield_value(mf, "care_instructions"),
+                "search_keywords": parse_metafield_value(mf, "search_keywords"),
+                "who_is_it_for": parse_metafield_value(mf, "who_is_it_for"),
+                "product_highlights": parse_metafield_value(mf, "product_highlights"),
+
                 "image_urls": [image_url],
                 "product_url": product_url
             }
