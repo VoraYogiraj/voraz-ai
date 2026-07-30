@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     # Shopify
     shopify_store_domain: str
+    shopify_access_token: str = ""        
     shopify_admin_api_key: str = ""
     shopify_admin_api_secret: str = ""
     shopify_storefront_api_token: str = ""

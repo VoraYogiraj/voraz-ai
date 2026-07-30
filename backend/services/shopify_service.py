@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 SHOPIFY_BASE = f"https://{settings.shopify_store_domain}/admin/api/2025-01"
 GRAPHQL_URL = f"{SHOPIFY_BASE}/graphql.json"
 HEADERS = {
-    "X-Shopify-Access-Token": settings.shopify_admin_api_key,
+    "X-Shopify-Access-Token": settings.shopify_access_token,
     "Content-Type": "application/json"
 }
 

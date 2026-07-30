@@ -1,126 +1,101 @@
-import sys
-import os
-import asyncio
+# backend/tools/quiz_filter_tool.py
 import logging
-import re
-import json
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
-
-from dotenv import load_dotenv
-load_dotenv()
-
-from services.shopify_service import get_all_products
-from services.embedding_service import generate_embedding, build_product_embedding_text
+from typing import Optional, List, Dict, Any
 from services.supabase_client import supabase
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Metafields that are Shopify "list.single_line_text_field" — value comes back
-# as a JSON array string, e.g. '["Silk","Net"]'. Everything else is a plain
-# single-line string.
-LIST_METAFIELDS = {"occasions", "color", "vibes", "embroidery", "fabrics"}
+# Order matters: color is dropped before budget when a filter combo returns zero results.
+LOOSENING_ORDER = ["color", "price"]
 
 
-def clean_html(raw_html):
-    """Removes Shopify HTML tags from descriptions."""
-    cleanr = re.compile('<.*?>')
-    return re.sub(cleanr, '', raw_html or '')
+def _run_filter_query(
+    occasion: Optional[str],
+    order_type: Optional[str],
+    silhouette: Optional[str],
+    fit_type: Optional[str],
+    vibe: Optional[List[str]],
+    color: Optional[str],
+    min_price: Optional[float],
+    max_price: Optional[float],
+    match_count: int,
+) -> List[Dict[str, Any]]:
+    rpc_params = {
+        "filter_occasion": occasion,
+        "filter_order_type": order_type,
+        "filter_silhouette": silhouette,
+        "filter_fit_type": fit_type,
+        "filter_vibe": vibe,
+        "filter_color": color,
+        "filter_min_price": min_price,
+        "filter_max_price": max_price,
+        "match_count": match_count,
+    }
+    response = supabase.rpc("match_products_filtered", rpc_params).execute()
+    return response.data or []
 
 
-def parse_metafield_value(mf: dict, key: str):
-    """Returns a list for list-type metafields, a plain string otherwise."""
-    raw = mf.get(key, "")
-    if key in LIST_METAFIELDS:
-        if not raw:
-            return []
-        try:
-            parsed = json.loads(raw)
-            if isinstance(parsed, list):
-                return [str(v).strip() for v in parsed if str(v).strip()]
-        except (json.JSONDecodeError, TypeError):
-            pass
-        # fallback: comma-split in case it wasn't valid JSON for some reason
-        return [v.strip() for v in raw.split(",") if v.strip()]
-    return raw
+def build_match_reason(product: Dict[str, Any], occasion: Optional[str], vibe: Optional[List[str]]) -> str:
+    """One-line reason shown under each result card, e.g. 'Matches your Sangeet + Dramatic pick'."""
+    parts = []
+    if occasion:
+        parts.append(occasion.title())
+    product_vibe = product.get("vibes") or []
+    matched_vibe = [v for v in product_vibe if vibe and v in vibe]
+    if matched_vibe:
+        parts.append(matched_vibe[0].title())
+    if not parts:
+        return "Matches your quiz picks"
+    return f"Matches your {' + '.join(parts)} pick"
 
 
-async def sync_products():
-    logger.info("🚀 Starting VORA Product Sync...")
+def filter_products(
+    occasion: Optional[str] = None,
+    order_type: Optional[str] = None,
+    silhouette: Optional[str] = None,
+    fit_type: Optional[str] = None,
+    vibe: Optional[List[str]] = None,
+    color: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    match_count: int = 12,
+) -> Dict[str, Any]:
+    try:
+        loosened: List[str] = []
+        current_color = color
+        current_min = min_price
+        current_max = max_price
 
-    products = await get_all_products()
-    if not products:
-        logger.error("❌ No products found in Shopify. Check your API keys.")
-        return
+        results = _run_filter_query(
+            occasion, order_type, silhouette, fit_type, vibe,
+            current_color, current_min, current_max, match_count,
+        )
 
-    logger.info(f"📦 Found {len(products)} products. Processing...")
+        for step in LOOSENING_ORDER:
+            if results:
+                break
+            if step == "color" and current_color is not None:
+                current_color = None
+                loosened.append("color")
+            elif step == "price" and (current_min is not None or current_max is not None):
+                current_min = None
+                current_max = None
+                loosened.append("budget")
+            else:
+                continue
+            results = _run_filter_query(
+                occasion, order_type, silhouette, fit_type, vibe,
+                current_color, current_min, current_max, match_count,
+            )
 
-    for p in products:
-        try:
-            shopify_id = str(p['id'])
-            title = p['title']
-            description = clean_html(p.get('body_html', ''))
-            price = float(p['variants'][0]['price']) if p.get('variants') else 0
-            tags = [t.strip() for t in p.get('tags', '').split(',') if t.strip()]
+        for p in results:
+            p["match_reason"] = build_match_reason(p, occasion, vibe)
 
-            mf = p.get('metafields', {})
-            image_url = p['images'][0]['src'] if p.get('images') else ""
-            product_url = f"https://{os.getenv('SHOPIFY_STORE_DOMAIN')}/products/{p['handle']}"
-
-            product_data = {
-                "shopify_product_id": shopify_id,
-                "title": title,
-                "description": description,
-                "price_inr": price,
-                "tags": tags,
-
-                # list-type metafields -> text[]
-                "occasion": parse_metafield_value(mf, "occasions"),
-                "color_palette": parse_metafield_value(mf, "color"),
-                "vibes": parse_metafield_value(mf, "vibes"),
-                "embroidery": parse_metafield_value(mf, "embroidery"),
-                "fabric": parse_metafield_value(mf, "fabrics"),
-
-                # single-value metafields -> text
-                "silhouette": parse_metafield_value(mf, "silhouettes"),
-                "neckline": parse_metafield_value(mf, "neckline"),
-                "sleeve_style": parse_metafield_value(mf, "sleeve_style"),
-                "fit": parse_metafield_value(mf, "fit_type"),
-                "order_type": parse_metafield_value(mf, "order_type"),
-                "dupatta": parse_metafield_value(mf, "dupatta"),
-
-                # free-text fields
-                "short_description": parse_metafield_value(mf, "short_description"),
-                "care_instructions": parse_metafield_value(mf, "care_instructions"),
-                "search_keywords": parse_metafield_value(mf, "search_keywords"),
-                "who_is_it_for": parse_metafield_value(mf, "who_is_it_for"),
-                "product_highlights": parse_metafield_value(mf, "product_highlights"),
-
-                "image_urls": [image_url],
-                "product_url": product_url
-            }
-
-            res = supabase.table("products").upsert(product_data, on_conflict="shopify_product_id").execute()
-            db_product_id = res.data[0]['id']
-
-            embedding_text = build_product_embedding_text(product_data)
-            vector = generate_embedding(embedding_text)
-
-            if vector:
-                supabase.table("product_embeddings").delete().eq("product_id", db_product_id).execute()
-                supabase.table("product_embeddings").insert({
-                    "product_id": db_product_id,
-                    "embedding": vector
-                }).execute()
-
-            logger.info(f"✅ Synced: {title}")
-            await asyncio.sleep(0.5)
-
-        except Exception as e:
-            logger.error(f"⚠️ Error syncing product {p.get('title')}: {e}")
-
-    logger.info("✨ Sync Complete!")
-
-if __name__ == "__main__":
-    asyncio.run(sync_products())
+        return {
+            "products": results,
+            "count": len(results),
+            "loosened": loosened,
+        }
+    except Exception as e:
+        logger.error(f"Quiz filter error: {e}", exc_info=True)
+        return {"products": [], "count": 0, "loosened": [], "error": str(e)}
