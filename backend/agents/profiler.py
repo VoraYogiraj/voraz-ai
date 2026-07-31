@@ -43,8 +43,14 @@ omit a key entirely if the message gives no signal for it:
 - budget_max: integer (upper bound of budget; if only one number given, set both min and max to it)
 - wedding_date: string, ISO format YYYY-MM-DD if a specific date is given, otherwise a
   loose phrase like "next spring" or "December 2026" if that's all that's mentioned
-- event_type: string, e.g. "wedding ceremony", "reception", "sangeet", "engagement"
-- - style_prefs: array of short strings describing vibe/silhouette/color/garment-type words mentioned
+- event_type: string, one of "wedding ceremony", "reception", "sangeet", "engagement", or another
+  function name if stated. Treat ungrammatical short answers as complete, settled answers, not
+  truncated fragments — a customer replying tersely to a direct question is answering, not trailing
+  off. Map confidently: the literal reply "for wedding" (even without "the") means "wedding ceremony".
+  Also map "wedding", "it's the wedding", "the wedding day" the same way. Don't withhold this field
+  just because the phrasing is brief — a short answer to a direct question about the event is
+  still a clear signal.
+- style_prefs: array of short strings describing vibe/silhouette/color/garment-type words mentioned
   (e.g. ["pastel", "A-line", "minimal embroidery", "lehenga"])
 - location: string, city/region if mentioned
 
