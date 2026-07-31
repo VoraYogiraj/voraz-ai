@@ -40,7 +40,10 @@ Return ONLY a JSON object (no markdown, no preamble) with these keys, all option
 omit a key entirely if the message gives no signal for it:
 
 - budget_min: integer (lower bound of budget, in the currency the user implies, no symbols)
-- budget_max: integer (upper bound of budget; if only one number given, set both min and max to it)
+- budget_max: integer (upper bound of budget). If the customer gives only one number (e.g. "50,000",
+  "my budget is 50k"), treat it as a ceiling — set budget_max to that number only. Do NOT set
+  budget_min in this case; leave it out of the JSON entirely unless the customer clearly states
+  a lower bound too (e.g. "between 30k and 50k").
 - wedding_date: string, ISO format YYYY-MM-DD if a specific date is given, otherwise a
   loose phrase like "next spring" or "December 2026" if that's all that's mentioned
 - event_type: string, one of "wedding ceremony", "reception", "sangeet", "engagement", or another
