@@ -1,26 +1,16 @@
 {% comment %}
-  VORA AI Digital Stylist Integration
-  1. Upload 'vora-widget.css' and 'vora-widget.js' to your Shopify Assets folder.
-  2. Paste {% render 'vora-ai-stylist' %} just before </body> in your theme.liquid file.
+  VORA AI Bridal Stylist — chat widget
+  1. Upload vora-widget.css and vora-widget.js to Shopify Assets.
+  2. Paste {% render 'vora-ai-stylist' %} just before </body> in theme.liquid.
 {% endcomment %}
 
-<!-- VORA Configuration -->
 <script>
   window.VORA_CONFIG = {
-    // Replace the URL below with your live backend URL (e.g., from Render or Hostinger)
-    apiUrl: 'http://localhost:8000', 
+    apiUrl: 'https://voraz-ai.onrender.com',
     shopDomain: '{{ shop.permanent_domain }}',
     shopName: '{{ shop.name }}'
   };
 </script>
 
-<!-- Load VORA Styles -->
 {{ 'vora-widget.css' | asset_url | stylesheet_tag }}
-
-<!-- Load VORA Logic -->
-<script src="{{ 'vora-widget.js' | asset_url }}" defer="defer"></script>
-
-<style>
-  /* Optional: Simple fix to ensure the widget doesn't overlap Shopify's default chat */
-  #shopify-chat { margin-bottom: 80px !important; }
-</style>
+<script src="{{ 'vora-widget.js' | asset_url }}" defer></script>

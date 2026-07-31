@@ -1,0 +1,60 @@
+{
+  "_comment": "Phase B / item 7. objection_handler.py matches user message text against trigger_phrases (case-insensitive substring/fuzzy match) for each objection_type, returns resolution_template, and optionally calls linked_action. Add new objection types/phrases here without touching code.",
+
+  "objections": [
+    {
+      "objection_type": "too_expensive",
+      "trigger_phrases": [
+        "too expensive", "too costly", "out of budget", "can't afford",
+        "cheaper option", "any discount", "price is high", "reduce price"
+      ],
+      "resolution_template": "I completely understand — budget matters. We do have Ready to Ship pieces starting lower, and Choose & Customize lets you control cost by picking fabric/embroidery tiers. Want me to show you options in your budget?",
+      "linked_action": null
+    },
+    {
+      "objection_type": "delivery_time_concern",
+      "trigger_phrases": [
+        "how long", "delivery time", "will it reach", "wedding is soon",
+        "how many days", "rush order", "urgent", "in time for wedding"
+      ],
+      "resolution_template": "Totally fair to ask — timing matters for a wedding. Ready to Ship pieces can go out within a few days. For Custom or Bespoke, tell me your wedding date and I'll confirm if we can make the timeline work.",
+      "linked_action": "check_production_timeline"
+    },
+    {
+      "objection_type": "size_fit_concern",
+      "trigger_phrases": [
+        "will it fit", "size available", "my size", "size chart",
+        "too tight", "too loose", "alterations", "fitting"
+      ],
+      "resolution_template": "Good question — fit is everything for a bridal outfit. Let me check current stock in your size, and know that Choose & Customize and Bespoke are made to your exact measurements.",
+      "linked_action": "check_size_availability"
+    },
+    {
+      "objection_type": "quality_material_concern",
+      "trigger_phrases": [
+        "is it good quality", "fabric quality", "will it last",
+        "genuine", "authentic", "material used"
+      ],
+      "resolution_template": "Happy to reassure you on that — every piece lists its fabric and embroidery details on the product page, and our Custom/Bespoke tiers let you choose premium materials directly. Want me to pull up the fabric details for something you liked?",
+      "linked_action": null
+    },
+    {
+      "objection_type": "just_browsing_hesitant",
+      "trigger_phrases": [
+        "just looking", "just browsing", "not sure yet", "still deciding",
+        "not ready to buy", "thinking about it", "maybe later"
+      ],
+      "resolution_template": "No pressure at all — take your time. I can save your favorites to a shortlist so they're here whenever you're ready, and you can always come back to continue.",
+      "linked_action": null
+    },
+    {
+      "objection_type": "trust_return_policy",
+      "trigger_phrases": [
+        "return policy", "can i return", "exchange", "refund",
+        "what if it doesn't fit", "cancellation"
+      ],
+      "resolution_template": "Great question — I'll confirm our current return/exchange policy for your specific order type (Ready to Ship vs Custom/Bespoke have different terms), so you know exactly what to expect before you decide.",
+      "linked_action": null
+    }
+  ]
+}

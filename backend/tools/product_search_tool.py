@@ -84,3 +84,66 @@ def search_products(
     except Exception as e:
         logger.error(f"Product search error: {e}", exc_info=True)
         return f"Error searching products: {str(e)}"
+
+
+@tool
+def search_products_filtered(
+    occasion: Optional[str] = None,
+    order_type: Optional[str] = None,
+    silhouette: Optional[str] = None,
+    fit_type: Optional[str] = None,
+    vibe: Optional[list[str]] = None,
+    color: Optional[str] = None,
+    min_price: Optional[int] = None,
+    max_price: Optional[int] = None,
+    max_results: int = 5
+) -> str:
+    """Search VORA products using structured filters (occasion, order type,
+    silhouette, fit, vibe, color, price range) already known from the
+    customer's profile. Prefer this over search_products when these slots
+    are already known — it filters directly rather than relying on semantic
+    similarity. Falls back to no results if filters are too narrow; in that
+    case try search_products instead.
+    """
+    try:
+        expanded_occasion = expand_occasion(occasion)
+
+        rpc_params = {
+            "filter_occasion": expanded_occasion,
+            "filter_order_type": order_type,
+            "filter_silhouette": silhouette,
+            "filter_fit_type": fit_type,
+            "filter_vibe": vibe,
+            "filter_color": color,
+            "filter_min_price": min_price,
+            "filter_max_price": max_price,
+            "match_count": max_results
+        }
+
+        logger.info(f"Filtered search: {rpc_params}")
+        response = supabase.rpc("match_products_filtered", rpc_params).execute()
+        results = response.data
+        logger.info(f"RPC returned {len(results)} results")
+
+        if not results:
+            return "No products found matching these filters. Try search_products for a broader semantic search instead."
+
+        formatted_results = []
+        for p in results:
+            colors = p.get('color_palette') or []
+            occasions = p.get('occasion') or []
+            item = (
+                f"PRODUCT: {p.get('title', 'Unknown')}\n"
+                f"Price: ₹{p.get('price_inr', 0):,.0f}\n"
+                f"Occasion: {', '.join(occasions) if isinstance(occasions, list) else occasions}\n"
+                f"Silhouette: {p.get('silhouette', 'N/A')}\n"
+                f"Fit: {p.get('fit', 'N/A')}\n"
+                f"Colors: {', '.join(colors)}\n"
+                f"Link: {p.get('product_url', '')}\n"
+            )
+            formatted_results.append(item)
+
+        return "\n---\n".join(formatted_results)
+    except Exception as e:
+        logger.error(f"Filtered product search error: {e}", exc_info=True)
+        return f"Error searching products: {str(e)}"

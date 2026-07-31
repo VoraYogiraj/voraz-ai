@@ -1,7 +1,8 @@
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate
-from tools.product_search_tool import search_products
+from tools.product_search_tool import search_products, search_products_filtered
+from agents.memory_store import get_or_create_profile
 from config import settings
 import logging
 import traceback
@@ -11,9 +12,21 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """You are VORA, an expert bridal fashion consultant for VORAZ (luxury Indian bridal couture).
 Help customers find their perfect lehenga by understanding their style, occasion, and color preferences.
-Always use the search_products tool to find relevant products before responding.
-Call search_products only once per customer request unless the first search returns
+
+You have two search tools:
+- search_products_filtered: use this FIRST whenever the customer's known profile
+  (shown below, if available) already has occasion, style, budget, or location
+  slots filled in. It filters directly against the catalog and is more precise.
+- search_products: use this if search_products_filtered returns no results, or
+  if the customer's profile has no relevant slots filled in yet — it searches
+  by semantic similarity to the customer's description instead.
+
+Call a search tool only once per customer request unless the first search returns
 no results at all — do not repeatedly rephrase the same query.
+
+Known customer profile so far:
+{profile_context}
+
 Provide warm, personalized recommendations with specific product details."""
 
 prompt = ChatPromptTemplate.from_messages([
@@ -23,9 +36,41 @@ prompt = ChatPromptTemplate.from_messages([
     ("placeholder", "{agent_scratchpad}"),
 ])
 
-def run_stylist_agent(user_message: str, chat_history: list) -> str:
+
+def _build_profile_context(session_id: str) -> str:
+    """Pulls the customer's known profile slots and formats them as
+    plain text for the system prompt, so the agent's tool calls are
+    grounded in what the Profiler already extracted instead of
+    re-guessing from raw conversation text."""
+    if not session_id:
+        return "No profile available yet."
+
     try:
-        logger.debug(f"=== AGENT START | input: {user_message} ===")
+        profile = get_or_create_profile(session_id)
+        if not profile:
+            return "No profile available yet."
+
+        parts = []
+        if profile.get("avatar_type"):
+            parts.append(f"Order type: {profile['avatar_type']}")
+        if profile.get("event_type"):
+            parts.append(f"Occasion: {profile['event_type']}")
+        if profile.get("style_prefs"):
+            parts.append(f"Style preferences: {profile['style_prefs']}")
+        if profile.get("budget_min") or profile.get("budget_max"):
+            parts.append(f"Budget: ₹{profile.get('budget_min', 0):,.0f}–₹{profile.get('budget_max', 0):,.0f}")
+        if profile.get("location"):
+            parts.append(f"Location: {profile['location']}")
+
+        return "\n".join(parts) if parts else "No profile slots filled in yet."
+    except Exception as e:
+        logger.warning(f"Could not load profile for session {session_id}: {e}")
+        return "No profile available yet."
+
+
+def run_stylist_agent(user_message: str, chat_history: list, session_id: str = None) -> str:
+    try:
+        logger.debug(f"=== AGENT START | input: {user_message} | session_id: {session_id} ===")
 
         llm = ChatOpenAI(
             model=settings.openrouter_model_id,
@@ -34,7 +79,7 @@ def run_stylist_agent(user_message: str, chat_history: list) -> str:
             openai_api_base=settings.openrouter_base_url,
         )
 
-        tools = [search_products]
+        tools = [search_products_filtered, search_products]
 
         agent = create_tool_calling_agent(llm, tools, prompt)
         agent_executor = AgentExecutor(
@@ -48,9 +93,12 @@ def run_stylist_agent(user_message: str, chat_history: list) -> str:
             return_intermediate_steps=True,
         )
 
+        profile_context = _build_profile_context(session_id)
+
         response = agent_executor.invoke({
             "input": user_message,
             "chat_history": chat_history,
+            "profile_context": profile_context,
         })
 
         logger.debug(f"=== INTERMEDIATE STEPS: {response.get('intermediate_steps')} ===")

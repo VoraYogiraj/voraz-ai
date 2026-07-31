@@ -1,0 +1,41 @@
+{
+  "_comment": "Phase B / item 8. sales_consultant.py reads this to decide upsell/cross-sell copy. 'recreate_eligible_if' describes which product_customization_map rows qualify for a Ready-to-Ship -> Custom upsell pitch; actual per-SKU eligibility still lives in the product_customization_map table (filled in later with real data).",
+
+  "upsell_ready_to_custom": {
+    "eligible_if": "product_customization_map.is_customizable = true for the product being viewed/shortlisted",
+    "trigger_moment": "after a Ready to Ship product is shortlisted or shown in Stylist results",
+    "copy_templates": [
+      "Love this one? You can also get it Custom-made in your size and choice of fabric/color, starting at {custom_price_min}.",
+      "This design is available Ready to Ship, or we can recreate it as a Custom piece tailored just for you — want to see that option?",
+      "If you'd like something closer to perfect, this style can be recreated as a Custom order with {recreate_note}."
+    ]
+  },
+
+  "upsell_custom_to_bespoke": {
+    "eligible_if": "avatar_type = 'custom' and style_prefs indicates a highly specific/unique request (e.g. custom motif, heavy personalization mentioned in free text)",
+    "trigger_moment": "when the bride describes a very specific vision that goes beyond standard customization options",
+    "copy_templates": [
+      "What you're describing sounds like it deserves a fully Bespoke piece designed from scratch around your vision — want me to set up a consultation for that?",
+      "For something this personal, Bespoke gives our design team full creative freedom to build exactly what you have in mind."
+    ]
+  },
+
+  "cross_sell_accessories": {
+    "eligible_if": "a core outfit (lehenga/gown/saree) has been shortlisted or added to cart",
+    "trigger_moment": "immediately after a core outfit is shortlisted",
+    "copy_templates": [
+      "This would pair beautifully with our {accessory_category} — want to see a few that match this look?",
+      "Brides usually complete this look with matching {accessory_category} — want me to show you some options?"
+    ],
+    "accessory_categories": ["dupatta", "jewelry", "clutch", "footwear"]
+  },
+
+  "consultation_booking_prompt": {
+    "eligible_if": "avatar_type in ('custom', 'bespoke') and 2+ shortlisted products or an unresolved sizing/timeline question",
+    "trigger_moment": "after Stylist stage has produced results for a Custom/Bespoke bride",
+    "copy_templates": [
+      "Would you like to book a quick consultation with our styling team to finalize the details? I can hold a slot for you.",
+      "Since this is a Custom piece, a short consultation call really helps get the fit and details exactly right — want me to book one?"
+    ]
+  }
+}

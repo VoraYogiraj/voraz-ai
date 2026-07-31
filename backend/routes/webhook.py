@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Request, Header
 from fastapi.responses import PlainTextResponse
 from config import settings
-from agents.stylist_agent import run_stylist_agent
-from services.session_service import create_session, append_message, get_session_history_for_langchain
+from agents.orchestrator import run_turn
 from tools.whatsapp_tool import send_style_summary_whatsapp
 import logging
 import hashlib
@@ -55,56 +54,44 @@ async def verify_whatsapp(request: Request):
 async def whatsapp_webhook(request: Request, x_hub_signature_256: str = Header(None)):
     """Handles incoming WhatsApp messages"""
     body = await request.body()
-    
-    # Verify signature
+
     if x_hub_signature_256 and not verify_whatsapp_hmac(body.decode(), x_hub_signature_256):
         logger.error("WhatsApp signature verification failed")
         return {"status": "error", "message": "Invalid signature"}
-    
+
     try:
         data = await request.json()
-        
-        # Extract message and sender
+
         entry = data.get('entry', [{}])[0].get('changes', [{}])[0].get('value', {})
         if 'messages' not in entry:
-            return {"status": "ok"}  # Status update, not a message
-        
+            return {"status": "ok"}
+
         message = entry['messages'][0]
         phone = message.get('from')
         text = message.get('text', {}).get('body', '').strip()
-        
+
         if not phone or not text:
             return {"status": "ok"}
-        
-        # Create/retrieve session for this phone
-        session = create_session()
-        if not session:
-            logger.error("Failed to create session")
-            return {"status": "error"}
-        
-        session_token = session['session_token']
-        
-        # Append user message to history
-        append_message(session_token, "user", text)
-        
-        # Get history for context
-        history = get_session_history_for_langchain(session_token)
-        
-        # Run Stylist AI
-        reply = run_stylist_agent(text, history)
-        
-        # Append AI response to history
-        append_message(session_token, "assistant", reply)
-        
-        # Send reply back via WhatsApp (fire-and-forget, don't block)
-        # Note: send_style_summary_whatsapp is sync, so just call it
+
+        # Deterministic session id from phone number — keeps the same
+        # conversation/customer_profiles/messages rows across turns
+        # without needing client-side token storage.
+        session_id = f"whatsapp-{phone}"
+
+        result = run_turn(session_id, text, phone)
+        reply = result["reply"]
+
         try:
-            send_style_summary_whatsapp(phone, "Customer", reply)
+            send_style_summary_whatsapp.invoke({
+                "phone_number": phone,
+                "customer_name": "Customer",
+                "product_summary": reply,
+            })
         except Exception as e:
             logger.error(f"Failed to send WhatsApp reply: {e}")
-        
+
         return {"status": "ok"}
-    
+
     except Exception as e:
         logger.error(f"WhatsApp Webhook Error: {e}", exc_info=True)
         return {"status": "error", "message": str(e)}
