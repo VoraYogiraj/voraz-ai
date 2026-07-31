@@ -102,14 +102,28 @@ def _handle_greeting(session_id: str, message: str, profile: dict) -> str:
 def _handle_profiling(session_id: str, message: str, profile: dict, customer_id: Optional[str]) -> str:
     """Slot-fill until profile is ready, then advance to styling."""
     result = run_profiler_turn(session_id, message, customer_id)
-    reply = result.get("reply", "Tell me more about what you're looking for!")
+    missing = result.get("missing_slots", [])
+    updated_profile = result.get("profile", profile)
 
-    # Re-fetch profile after update to check completeness
-    updated_profile = get_or_create_profile(session_id, customer_id)
     if _profile_ready(updated_profile):
         _advance_stage(session_id, "profiling", "styling")
+        return (
+            "Perfect, I've got a good sense of what you're looking for! "
+            "Let me pull together some options for you. ✨"
+        )
 
-    return reply
+    if not missing:
+        return "Tell me more about what you're looking for!"
+
+    next_slot = missing[0]
+    prompts = {
+        "budget_min": "What budget range did you have in mind for your outfit?",
+        "wedding_date": "When's the big day? That'll help me guide you on timelines.",
+        "event_type": "Is this for the wedding ceremony, sangeet, reception, or another function?",
+        "location": "Which city will the wedding be in?",
+        "style_prefs": "What's your dream look — any colors, silhouettes, or vibes in mind?",
+    }
+    return prompts.get(next_slot, "Tell me a bit more so I can find your perfect look!")
 
 
 def _handle_styling(session_id: str, message: str, profile: dict) -> str:

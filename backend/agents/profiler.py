@@ -44,8 +44,8 @@ omit a key entirely if the message gives no signal for it:
 - wedding_date: string, ISO format YYYY-MM-DD if a specific date is given, otherwise a
   loose phrase like "next spring" or "December 2026" if that's all that's mentioned
 - event_type: string, e.g. "wedding ceremony", "reception", "sangeet", "engagement"
-- style_prefs: array of short strings describing vibe/silhouette/color words mentioned
-  (e.g. ["pastel", "A-line", "minimal embroidery"])
+- - style_prefs: array of short strings describing vibe/silhouette/color/garment-type words mentioned
+  (e.g. ["pastel", "A-line", "minimal embroidery", "lehenga"])
 - location: string, city/region if mentioned
 
 Only extract what the message actually states or clearly implies. Do not guess or invent
