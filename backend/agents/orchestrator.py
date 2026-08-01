@@ -105,6 +105,10 @@ def _handle_profiling(session_id: str, message: str, profile: dict, customer_id:
     missing = result.get("missing_slots", [])
     updated_profile = result.get("profile", profile)
 
+    avatar_type = updated_profile.get("avatar_type")
+    if avatar_type not in ("custom", "bespoke"):
+        missing = [s for s in missing if s != "wedding_date"]
+
     if _profile_ready(updated_profile):
         _advance_stage(session_id, "profiling", "styling")
         return (
@@ -124,7 +128,6 @@ def _handle_profiling(session_id: str, message: str, profile: dict, customer_id:
         "style_prefs": "What's your dream look — any colors, silhouettes, or vibes in mind?",
     }
     return prompts.get(next_slot, "Tell me a bit more so I can find your perfect look!")
-
 
 def _handle_styling(session_id: str, message: str, profile: dict) -> str:
     """Run stylist agent with full chat history."""
