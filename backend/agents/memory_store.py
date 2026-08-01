@@ -51,6 +51,10 @@ def get_or_create_profile(session_id: str, customer_id: Optional[str] = None) ->
 
 def update_profile(session_id: str, fields: dict[str, Any]) -> dict[str, Any]:
     """Patch specific fields on a customer_profiles row (e.g. from profiler.py)."""
+    # Never write sentinel/invalid values to the DB
+    fields = {k: v for k, v in fields.items() if not (k == "avatar_type" and v in ("unclear", None, ""))}
+    if not fields:
+        return {}
     result = (
         supabase.table("customer_profiles")
         .update(fields)
@@ -76,7 +80,7 @@ def get_or_create_conversation(session_id: str, customer_id: Optional[str] = Non
     if result.data:
         return result.data[0]
 
-    insert_payload = {"session_id": session_id, "current_stage": "greeting"}
+    insert_payload = {"session_id": session_id, "current_stage": "greeting"}    
     if customer_id:
         insert_payload["customer_id"] = customer_id
 

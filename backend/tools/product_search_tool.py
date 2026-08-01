@@ -36,10 +36,15 @@ def search_products(
     occasion: Optional[str] = None,
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
+    order_type: Optional[str] = None,
     max_results: int = 5
 ) -> str:
     """Search for VORA bridal wear products based on style description, occasion, and budget.
     Use this when the customer describes what they're looking for.
+
+    order_type MUST be passed exactly as given in the system prompt's customer
+    context (e.g. "Ready to Ship", "Choose & Customize", "Fully Bespoke") — do
+    not translate, guess, or omit it if it was provided.
     """
     try:
         # Fold occasion into the embedding query text (normalized to catalog
@@ -58,7 +63,8 @@ def search_products(
             "match_count": max_results,
             "filter_occasion": None,
             "filter_min_price": min_price,
-            "filter_max_price": max_price
+            "filter_max_price": max_price,
+            "filter_order_type": order_type
         }
 
         response = supabase.rpc("match_products", rpc_params).execute()

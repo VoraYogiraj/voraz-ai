@@ -10,6 +10,15 @@ import traceback
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Maps the frontend/profile's internal avatar_type values to the exact
+# order_type strings stored in Supabase (must match Shopify metafield values
+# exactly — see product metafield definitions in Shopify admin).
+AVATAR_TO_ORDER_TYPE = {
+    "ready_to_wear": "Ready to Ship",
+    "custom": "Choose & Customize",
+    "bespoke": "Fully Bespoke",
+}
+
 SYSTEM_PROMPT = """You are VORA, an expert bridal fashion consultant for VORAZ (luxury Indian bridal couture).
 Help customers find their perfect lehenga by understanding their style, occasion, and color preferences.
 
@@ -27,6 +36,8 @@ no results at all — do not repeatedly rephrase the same query.
 Known customer profile so far:
 {profile_context}
 
+{order_type_constraint}
+
 Provide warm, personalized recommendations with specific product details."""
 
 prompt = ChatPromptTemplate.from_messages([
@@ -35,6 +46,32 @@ prompt = ChatPromptTemplate.from_messages([
     ("human", "{input}"),
     ("placeholder", "{agent_scratchpad}"),
 ])
+
+
+def _build_order_type_constraint(session_id: str) -> str:
+    """Resolves the customer's chosen path to the exact order_type string
+    used in the product catalog, and returns a hard instruction for the
+    agent — so path filtering doesn't depend on the LLM correctly
+    translating avatar_type on its own."""
+    if not session_id:
+        return ""
+
+    try:
+        profile = get_or_create_profile(session_id)
+        avatar_type = profile.get("avatar_type") if profile else None
+        order_type = AVATAR_TO_ORDER_TYPE.get(avatar_type)
+
+        if order_type:
+            return (
+                f"IMPORTANT: This customer is on the '{order_type}' path. "
+                f"You MUST pass order_type=\"{order_type}\" on every call to "
+                f"search_products or search_products_filtered. Never show "
+                f"products from a different order_type."
+            )
+        return ""
+    except Exception as e:
+        logger.warning(f"Could not resolve order_type constraint for session {session_id}: {e}")
+        return ""
 
 
 def _build_profile_context(session_id: str) -> str:
@@ -94,11 +131,13 @@ def run_stylist_agent(user_message: str, chat_history: list, session_id: str = N
         )
 
         profile_context = _build_profile_context(session_id)
+        order_type_constraint = _build_order_type_constraint(session_id)
 
         response = agent_executor.invoke({
             "input": user_message,
             "chat_history": chat_history,
             "profile_context": profile_context,
+            "order_type_constraint": order_type_constraint,
         })
 
         logger.debug(f"=== INTERMEDIATE STEPS: {response.get('intermediate_steps')} ===")
