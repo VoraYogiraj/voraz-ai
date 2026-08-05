@@ -38,6 +38,7 @@ from agents.memory_store import (
     set_stage,
     add_message,
     get_or_create_profile,
+    update_profile,
 )
 from agents.profiler import run_profiler_turn
 from agents.objection_handler import handle_objection
@@ -184,6 +185,7 @@ def run_turn(
     add_message(session_id, "user", message)
     # 3. Get current profile + stage
     profile = get_or_create_profile(session_id, customer_id)
+    stage = _current_stage(session_id)
 
     # 4. Objection check — runs on every turn except greeting
     if stage != "greeting":
