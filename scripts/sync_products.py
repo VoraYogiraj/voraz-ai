@@ -64,6 +64,10 @@ async def sync_products():
             price = float(p['variants'][0]['price']) if p.get('variants') else 0
             tags = [t.strip() for t in p.get('tags', '').split(',') if t.strip()]
 
+            if 'hidden-surcharge' in tags:
+                logger.info(f"⏭️  Skipping surcharge item: {title}")
+                continue
+
             mf = p.get('metafields', {})
             image_url = p['images'][0]['src'] if p.get('images') else ""
             product_url = f"https://{os.getenv('SHOPIFY_STORE_DOMAIN')}/products/{p['handle']}"

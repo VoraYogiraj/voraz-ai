@@ -162,6 +162,7 @@ def run_turn(
     session_id: str,
     message: str,
     customer_id: Optional[str] = None,
+    avatar_type: Optional[str] = None,
 ) -> dict[str, Any]:
     """
     Process one user turn. Called by chat.py / webhook.py instead of
@@ -174,16 +175,15 @@ def run_turn(
         "session_id": str,
     }
     """
-    # 1. Bootstrap session (idempotent — safe to call every turn)
+    # 1. Bootstrap session (idempotent â€" safe to call every turn)
     bootstrap_session(session_id, customer_id)
-
+    # 1b. If frontend explicitly passed avatar_type, seed the profile immediately
+    if avatar_type and avatar_type not in ("unclear", ""):
+        update_profile(session_id, {"avatar_type": avatar_type})
     # 2. Persist user message
     add_message(session_id, "user", message)
-
     # 3. Get current profile + stage
     profile = get_or_create_profile(session_id, customer_id)
-    stage = _current_stage(session_id)
-    logger.info(f"[orchestrator] session={session_id} stage={stage}")
 
     # 4. Objection check — runs on every turn except greeting
     if stage != "greeting":

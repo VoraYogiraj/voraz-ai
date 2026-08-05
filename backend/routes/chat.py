@@ -14,6 +14,7 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     session_token: Optional[str] = None
     message: str
+    avatar_type: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -42,8 +43,8 @@ async def chat_endpoint(request: ChatRequest):
     try:
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
-            None, run_turn, token, request.message, None
-        )
+    None, run_turn, token, request.message, None, request.avatar_type
+)
         return ChatResponse(
             session_token=token,
             reply=result["reply"],
